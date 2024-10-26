@@ -7,9 +7,13 @@
 #include <unordered_map>
 #include <libpq-fe.h>
 
-#include "model/fields.h"
 #include "db/connection.h"
+
+#include "sql/helper.h"
+
+#include "model/fields.h"
 #include "model/structs.h"
+#include "model/result_iterator.h"
 
 
 namespace illion {
@@ -35,24 +39,28 @@ namespace illion {
             void addRecord(const std::unordered_map<std::string, std::string>& record);
 
             template<typename T>
-            std::unordered_map<std::string, std::string> getRecord(const std::string& fieldName, T match) {
-
-                std::ostringstream sql;
-                sql << "SELECT * FROM " << getTableName() << " WHERE " << fieldName << " = ";
-
-                if constexpr (std::is_same<T, std::string>::value) {
-                    sql << "'" << match << "'";
-                } else if constexpr (std::is_same<T, bool>::value) {
-                    sql << (match ? "true" : "false");
-                } else {
-                    sql << match;
-                }
-
-                sql << ";";
-
-                return executeGetQuery(sql.str());
+            std::unordered_map<std::string, std::string> getRecord(const std::string& fieldName, const T match) {
+                std::string sql = SqlHelper::buildSelectWhere(getTableName(), fieldName, match);
+                return executeGetQuery(sql);
             }
-            // void updateField(const std::string& fieldName, const std::string& value);
+
+            template<typename T>
+            void updateField(const std::string id, const std::string& fieldName, const T value) {
+                std::ostringstream sql;
+                sql << "UPDATE " << getTableName() << " SET " << fieldName << " = " << value << " WHERE id = " << id << ";";
+                executeSQL(sql.str(), "Failed to update field");
+            }
+
+            template<typename T>
+            ResultIterator* filter(
+                const std::string& fieldName,
+                const T& match,
+                const std::vector<std::string>& mFields = {}
+                ) {
+                std::string sql = SqlHelper::buildSelectWhere(getTableName(), fieldName, match, mFields);
+                ExecuteResult result = executeSQL(sql, "Failed to filter records", true, false);
+                return new ResultIterator(result.result);
+            }
 
         private:
 
