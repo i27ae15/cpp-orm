@@ -39,13 +39,29 @@ namespace illion {
             void addRecord(const std::unordered_map<std::string, std::string>& record);
 
             template<typename T>
-            std::unordered_map<std::string, std::string> getRecord(const std::string& fieldName, const T match) {
-                std::string sql = SqlHelper::buildSelectWhere(getTableName(), fieldName, match);
+            std::unordered_map<std::string, std::string> getRecord(const std::string& fieldName, const T value) {
+
+                if constexpr (std::is_same<T, std::string>::value) {
+                    SqlHelper::AntiSQLInjection* antiSQLInjection = new SqlHelper::AntiSQLInjection(value);
+                    delete antiSQLInjection;
+
+                }
+                SqlHelper::AntiSQLInjection* antiSQLInjection = new SqlHelper::AntiSQLInjection(fieldName);
+
+                std::string sql = SqlHelper::buildSelectWhere(getTableName(), fieldName, value);
                 return executeGetQuery(sql);
             }
 
             template<typename T>
             void updateField(const std::string id, const std::string& fieldName, const T value) {
+
+                if constexpr (std::is_same<T, std::string>::value) {
+                    SqlHelper::AntiSQLInjection* antiSQLInjection = new SqlHelper::AntiSQLInjection(value);
+                    delete antiSQLInjection;
+
+                }
+                SqlHelper::AntiSQLInjection* antiSQLInjection = new SqlHelper::AntiSQLInjection(fieldName);
+
                 std::ostringstream sql;
                 sql << "UPDATE " << getTableName() << " SET " << fieldName << " = " << value << " WHERE id = " << id << ";";
                 executeSQL(sql.str(), "Failed to update field");
@@ -54,10 +70,17 @@ namespace illion {
             template<typename T>
             ResultIterator* filter(
                 const std::string& fieldName,
-                const T& match,
+                const T& value,
                 const std::vector<std::string>& mFields = {}
-                ) {
-                std::string sql = SqlHelper::buildSelectWhere(getTableName(), fieldName, match, mFields);
+            ) {
+                if constexpr (std::is_same<T, std::string>::value) {
+                    SqlHelper::AntiSQLInjection* antiSQLInjection = new SqlHelper::AntiSQLInjection(value);
+                    delete antiSQLInjection;
+
+                }
+                SqlHelper::AntiSQLInjection* antiSQLInjection = new SqlHelper::AntiSQLInjection(fieldName);
+
+                std::string sql = SqlHelper::buildSelectWhere(getTableName(), fieldName, value, mFields);
                 ExecuteResult result = executeSQL(sql, "Failed to filter records", true, false);
                 return new ResultIterator(result.result);
             }
