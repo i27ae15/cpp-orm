@@ -114,6 +114,8 @@ namespace illion {
             auto valueIt = record.find(it->name);
             if (valueIt != record.end()) {
 
+                SqlHelper::AntiSQLInjection* antiSQLInjection = new SqlHelper::AntiSQLInjection(valueIt->second);
+
                 // This mean that we have a value for this field
                 sql << "'" << valueIt->second << "'";
             } else {
@@ -134,10 +136,13 @@ namespace illion {
     }
 
     bool Model::fieldExistsInDB(const std::string& fieldName) {
+        SqlHelper::AntiSQLInjection* antiSQLInjection = new SqlHelper::AntiSQLInjection(fieldName);
+
         PGconn* conn = getConnection();
 
         // Query to check if the column exists in the table
-        std::string sql = "SELECT column_name FROM information_schema.columns WHERE table_name = '" + getTableName() + "' AND column_name = '" + fieldName + "';";
+
+        std::string sql = "SELECT column_name FROM information_schema.columns WHERE EXISTS (SELECT column_name FROM " + getTableName() + " WHERE column_name '" + fieldName + "';";
 
         PGresult* res = PQexec(conn, sql.c_str());
         bool exists = (PQntuples(res) > 0);
@@ -158,6 +163,10 @@ namespace illion {
             if (it == fieldTypeToString.end()) throw std::runtime_error("Unknown field type");
 
             std::string fieldType = it->second;
+
+            SqlHelper::AntiSQLInjection* antiSQLInjection = new SqlHelper::AntiSQLInjection(fieldType);
+            SqlHelper::AntiSQLInjection* antiSQLInjection1 = new SqlHelper::AntiSQLInjection(field.name);
+
             std::string sql = "ALTER TABLE " + getTableName() + " ADD COLUMN " + field.name + " " + fieldType;
 
             std::string errorMessage = "Error Adding field: " + field.name;
