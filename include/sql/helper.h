@@ -1,10 +1,18 @@
+#pragma once
 #include <string>
 #include <sstream>
+#include <vector>
 #include <algorithm>
 #include <cctype>
 #include <stdexcept>
+#include <libpq-fe.h>
+#include <iostream>
+#include <type_traits>
+#include "model/structs.h"
+
 
 namespace SqlHelper {
+
     template<typename T>
     std::string buildSelectWhere(
         const std::string& tableName,
@@ -40,20 +48,28 @@ namespace SqlHelper {
         return sql.str();
     }
 
+    illion::ExecuteResult executeSQL(
+        PGconn* conn,
+        std::string& sql,
+        std::string errorMessage = "",
+        bool throwError = true,
+        bool clearRes = true
+    );
+
     class AntiSQLInjection {
 
         private:
 
-            bool checkSet {};
-            bool checkDrop {};
-            bool checkComma {};
-            bool checkAlter {};
-            bool checkSelect {};
-            bool checkWhiteSpaces {};
-            bool checkSemiColom {};
+            bool checkSet;
+            bool checkDrop;
+            bool checkComma;
+            bool checkAlter;
+            bool checkSelect;
+            bool checkWhiteSpaces;
+            bool checkSemiColom;
 
-            bool isValidSQL {};
-            bool isTextValidated {};
+            bool isValidSQL;
+            bool isTextValidated;
             bool (AntiSQLInjection::*checkMethods[6])();
 
             std::string textToEvaluate {};
@@ -62,16 +78,7 @@ namespace SqlHelper {
             static AntiSQLInjection* instancePtr;
 
             // METHODS
-            void setTextToEvaluate(std::string& text) {
-
-                textToEvaluate = text;
-                upperTextToEvaluate = text;
-
-                std::transform(upperTextToEvaluate.begin(), upperTextToEvaluate.end(), upperTextToEvaluate.begin(), [](unsigned char c) {
-                    return std::toupper(c);
-                });
-            }
-
+            void setTextToEvaluate(std::string& text);
 
         public:
             AntiSQLInjection(
@@ -84,100 +91,27 @@ namespace SqlHelper {
                 bool checkWhiteSpaces = true,
                 bool checkSemiColom = true,
                 bool throwException = true
-            ) :
-            checkMethods  {
-                &AntiSQLInjection::containsWhiteSpaces,
-                &AntiSQLInjection::containsComma,
-                &AntiSQLInjection::containsDrop,
-                &AntiSQLInjection::containsAlter,
-                &AntiSQLInjection::containsSet,
-                &AntiSQLInjection::containsSelect
-            }
-            {
-                this->checkSet = checkSet;
-                this->checkDrop = checkDrop;
-                this->checkComma = checkComma;
-                this->checkAlter = checkAlter;
-                this->checkSelect = checkSelect;
-                this->checkWhiteSpaces = checkWhiteSpaces;
-                this->checkSemiColom = checkSemiColom;
+            );
 
-                setTextToEvaluate(textToEvaluate);
+            bool getIsValidSQL();
 
-                runChecks();
-                if (!getIsValidSQL()) throw std::runtime_error("SQL INJECTION DETECTED");
+            bool runChecks();
 
-            };
+            bool containsSymbol(std::string symbol);
 
-        bool getIsValidSQL() {
-            if (!isTextValidated) throw std::runtime_error("AntiSQLInjection::runChecks must be called first");
-            return isValidSQL;
+            bool containsSet();
 
-        }
+            bool containsDrop();
 
-        bool runChecks() {
+            bool containsComma();
 
-            if (isTextValidated) return isValidSQL;
+            bool containsAlter();
 
-            isValidSQL = true;
-            isTextValidated = true;
+            bool containsSelect();
 
-            for (auto checker : checkMethods) {
-                bool result = (this->*checker)();
+            bool containsWhiteSpaces();
 
-                if (result) {
-                    isValidSQL = false;
-                    break;
-                }
-            }
-
-            return isValidSQL;
-
-        }
-
-        bool containsSymbol(std::string symbol) {
-
-            size_t found = upperTextToEvaluate.find(symbol);
-            if (found != std::string::npos) return false;
-
-            return true;
-
-        }
-
-        bool containsSet() {
-            if (!checkSet) return false;
-            return containsSymbol("SET");
-        }
-
-        bool containsDrop() {
-            if (!checkDrop) return false;
-            return containsSymbol("DROP");
-        }
-
-        bool containsComma() {
-            if (!checkComma) return false;
-            return containsSymbol(",");
-        }
-
-        bool containsAlter() {
-            if (!checkAlter) return false;
-            return containsSymbol("ALTER");
-        }
-
-        bool containsSelect() {
-            if (!checkSelect) return false;
-            return containsSymbol("SELECT");
-        }
-
-        bool containsWhiteSpaces() {
-            if (!checkWhiteSpaces) return false;
-            return containsSymbol(" ");
-        }
-
-        bool containsWhiteSemiColom() {
-            if (!checkSemiColom) return false;
-            return containsSymbol(";");
-        }
+            bool containsWhiteSemiColom();
 
     };
 
