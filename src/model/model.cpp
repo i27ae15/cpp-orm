@@ -54,20 +54,7 @@ namespace illion {
     }
 
     illion::ExecuteResult Model::executeSQL(std::string sql, std::string errorMessage, bool throwError, bool clearRes) {
-
-        PGresult* res = PQexec(conn, sql.c_str());
-        bool success = (PQresultStatus(res) == PGRES_COMMAND_OK || PQresultStatus(res) == PGRES_TUPLES_OK);
-        if (clearRes) PQclear(res);
-
-        if (!success) {
-            if (throwError) {
-                throw std::runtime_error(errorMessage + ": " + PQerrorMessage(conn));
-            } else {
-                std::cerr << "Error while executing SQL: " << PQerrorMessage(conn) << "\n";
-            }
-        }
-
-        return illion::ExecuteResult{success, PQerrorMessage(conn), res};
+        return SqlHelper::executeSQL(conn, sql, errorMessage, throwError, clearRes);
     }
 
     std::unordered_map<std::string, std::string> Model::executeGetQuery(const std::string& sql) {
