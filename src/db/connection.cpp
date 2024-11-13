@@ -10,7 +10,6 @@ namespace illion {
     Connection& Connection::getInstance() {
         static Connection instance;
         return instance;
-
     }
 
     Connection::Connection()
