@@ -58,6 +58,7 @@ add_executable(tests
     src/tests/db_management.cpp
     src/tests/test_model.cpp
     src/tests/test_case.cpp
+    src/tests/test_sqlinjection.cpp
 )
 
 # Add the PostgreSQL library directory
