@@ -1,4 +1,5 @@
 #include "sql/helper.h"
+#include <tests/utils.h>
 
 namespace SqlHelper {
 
@@ -13,13 +14,13 @@ namespace SqlHelper {
         bool success = (PQresultStatus(res) == PGRES_COMMAND_OK || PQresultStatus(res) == PGRES_TUPLES_OK);
         if (clearRes) PQclear(res);
 
-        if (!errorMessage.size()) errorMessage = "Error while executing SQL";
+        if (!errorMessage.size()) errorMessage = "Error while executing SQL:";
 
         if (!success) {
             if (throwError) {
-                throw std::runtime_error(errorMessage + ": " + PQerrorMessage(conn));
+                throw std::runtime_error(errorMessage + " " + PQerrorMessage(conn));
             } else {
-                std::cerr << "Error while executing SQL: " << PQerrorMessage(conn) << "\n";
+                PRINT_ERROR(errorMessage << " " << PQerrorMessage(conn));
             }
         }
 
