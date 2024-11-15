@@ -35,16 +35,24 @@ namespace SqlHelper {
         bool checkAlter,
         bool checkSelect,
         bool checkWhiteSpaces,
-        bool checkSemiColom,
+        bool checkSemiColon,
+        bool checkUpdate,
         bool throwException
     ) :
+    isValidSQL {},
+    isTextValidated {},
+    failedSymbol {},
+    textToEvaluate {},
+    upperTextToEvaluate {},
     checkMethods  {
-        &AntiSQLInjection::containsWhiteSpaces,
-        &AntiSQLInjection::containsComma,
-        &AntiSQLInjection::containsDrop,
-        &AntiSQLInjection::containsAlter,
-        &AntiSQLInjection::containsSet,
-        &AntiSQLInjection::containsSelect
+        &AntiSQLInjection::validateWhiteSpaces,
+        &AntiSQLInjection::validateComma,
+        &AntiSQLInjection::validateSemiColon,
+        &AntiSQLInjection::validateDrop,
+        &AntiSQLInjection::validateAlter,
+        &AntiSQLInjection::validateSet,
+        &AntiSQLInjection::validateSelect,
+        &AntiSQLInjection::validateUpdate
     }
     {
         this->checkSet = checkSet;
@@ -53,12 +61,16 @@ namespace SqlHelper {
         this->checkAlter = checkAlter;
         this->checkSelect = checkSelect;
         this->checkWhiteSpaces = checkWhiteSpaces;
-        this->checkSemiColom = checkSemiColom;
+        this->checkSemiColon = checkSemiColon;
+        this->checkUpdate = checkUpdate;
 
         setTextToEvaluate(textToEvaluate);
 
         runChecks();
-        if (!getIsValidSQL()) throw std::runtime_error("SQL INJECTION DETECTED");
+        if (!getIsValidSQL()) {
+            PRINT_ERROR("Fail for " + failedSymbol);
+            throw std::runtime_error("SQL INJECTION DETECTED");
+        }
 
     }
 
@@ -87,9 +99,9 @@ namespace SqlHelper {
         isTextValidated = true;
 
         for (auto checker : checkMethods) {
-            bool result = (this->*checker)();
+            bool passed = (this->*checker)();
 
-            if (result) {
+            if (!passed) {
                 isValidSQL = false;
                 break;
             }
@@ -99,48 +111,66 @@ namespace SqlHelper {
 
     }
 
-    bool AntiSQLInjection::containsSymbol(std::string symbol) {
+    bool AntiSQLInjection::validateSymbol(std::string symbol) {
+
+        /**
+        * @brief Validates if a specific symbol is absent in the `upperTextToEvaluate` string.
+        *
+        * This method checks if the `symbol` is present in `upperTextToEvaluate`. If found,
+        * it logs an error message and returns `false`, indicating a validation failure.
+        * If not found, it returns `true`, meaning the symbol is absent and the validation passes.
+        *
+        * @param symbol The string symbol to check for within `upperTextToEvaluate`.
+        * @return `true` if `symbol` is not found in `upperTextToEvaluate`, `false` otherwise.
+        */
 
         size_t found = upperTextToEvaluate.find(symbol);
-        if (found != std::string::npos) return false;
+        if (found != std::string::npos) {
+            failedSymbol = symbol;
+            return false;
+        }
 
         return true;
-
     }
 
-    bool AntiSQLInjection::containsSet() {
-        if (!checkSet) return false;
-        return containsSymbol("SET");
+    bool AntiSQLInjection::validateSet() {
+        if (!checkSet) return true;
+        return validateSymbol("SET");
     }
 
-    bool AntiSQLInjection::containsDrop() {
-        if (!checkDrop) return false;
-        return containsSymbol("DROP");
+    bool AntiSQLInjection::validateDrop() {
+        if (!checkDrop) return true;
+        return validateSymbol("DROP");
     }
 
-    bool AntiSQLInjection::containsComma() {
-        if (!checkComma) return false;
-        return containsSymbol(",");
+    bool AntiSQLInjection::validateComma() {
+        if (!checkComma) return true;
+        return validateSymbol(",");
     }
 
-    bool AntiSQLInjection::containsAlter() {
-        if (!checkAlter) return false;
-        return containsSymbol("ALTER");
+    bool AntiSQLInjection::validateAlter() {
+        if (!checkAlter) return true;
+        return validateSymbol("ALTER");
     }
 
-    bool AntiSQLInjection::containsSelect() {
-        if (!checkSelect) return false;
-        return containsSymbol("SELECT");
+    bool AntiSQLInjection::validateSelect() {
+        if (!checkSelect) return true;
+        return validateSymbol("SELECT");
     }
 
-    bool AntiSQLInjection::containsWhiteSpaces() {
-        if (!checkWhiteSpaces) return false;
-        return containsSymbol(" ");
+    bool AntiSQLInjection::validateWhiteSpaces() {
+        if (!checkWhiteSpaces) return true;
+        return validateSymbol(" ");
     }
 
-    bool AntiSQLInjection::containsWhiteSemiColom() {
-        if (!checkSemiColom) return false;
-        return containsSymbol(";");
+    bool AntiSQLInjection::validateSemiColon() {
+        if (!checkSemiColon) return true;
+        return validateSymbol(";");
+    }
+
+    bool AntiSQLInjection::validateUpdate() {
+        if (!checkUpdate) return true;
+        return validateSymbol("UPDATE");
     }
 
 }

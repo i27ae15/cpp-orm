@@ -66,14 +66,17 @@ namespace SqlHelper {
             bool checkAlter;
             bool checkSelect;
             bool checkWhiteSpaces;
-            bool checkSemiColom;
+            bool checkSemiColon;
+            bool checkUpdate;
 
             bool isValidSQL;
             bool isTextValidated;
-            bool (AntiSQLInjection::*checkMethods[6])();
+            bool (AntiSQLInjection::*checkMethods[8])();
 
-            std::string textToEvaluate {};
-            std::string upperTextToEvaluate {};
+            std::string failedSymbol;
+
+            std::string textToEvaluate;
+            std::string upperTextToEvaluate;
 
             static AntiSQLInjection* instancePtr;
 
@@ -89,7 +92,8 @@ namespace SqlHelper {
                 bool checkAlter = true,
                 bool checkSelect = true,
                 bool checkWhiteSpaces = true,
-                bool checkSemiColom = true,
+                bool checkSemiColon = true,
+                bool checkUpdate = true,
                 bool throwException = true
             );
 
@@ -97,22 +101,23 @@ namespace SqlHelper {
 
             bool runChecks();
 
-            bool containsSymbol(std::string symbol);
+            bool validateSymbol(std::string symbol);
 
-            bool containsSet();
+            bool validateSet();
 
-            bool containsDrop();
+            bool validateDrop();
 
-            bool containsComma();
+            bool validateComma();
 
-            bool containsAlter();
+            bool validateAlter();
 
-            bool containsSelect();
+            bool validateSelect();
 
-            bool containsWhiteSpaces();
+            bool validateWhiteSpaces();
 
-            bool containsWhiteSemiColom();
+            bool validateSemiColon();
 
+            bool validateUpdate();
     };
 
 }
